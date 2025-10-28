@@ -1,4 +1,4 @@
-// Simple export functions for the papers
+
 export const exportToCSV = (papers: any[], filename: string = 'research_papers.csv') => {
   const headers = [
     'Title',
@@ -37,7 +37,6 @@ export const exportToCSV = (papers: any[], filename: string = 'research_papers.c
 };
 
 export const exportToPDF = (papers: any[], filename: string = 'research_papers.pdf') => {
-  // Use browser print for PDF - simple but works
   const printWindow = window.open('', '_blank');
   if (!printWindow) return;
   

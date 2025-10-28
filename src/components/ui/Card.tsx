@@ -63,7 +63,6 @@ export const ResearchPaperCard: React.FC<{
   paper: ResearchPaper;
   className?: string;
 }> = ({ paper, className = '' }) => {
-  // Helper to build full image URLs
   const getImageUrl = (imagePath: string | undefined): string => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;

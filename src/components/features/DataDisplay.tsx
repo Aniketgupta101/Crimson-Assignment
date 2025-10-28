@@ -10,6 +10,7 @@ const DataDisplay: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPaper, setSelectedPaper] = useState<ResearchPaper | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "impact" | "title">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -18,18 +19,29 @@ const DataDisplay: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filter papers based on search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, sortBy, sortOrder, itemsPerPage]);
+
   const filteredPapers = allResearchPapers.filter(paper => {
-    const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = searchTerm === "" || 
-      paper.papertitle.toLowerCase().includes(searchLower) ||
-      paper.coauthors.toLowerCase().includes(searchLower) ||
-      paper.journal.title.toLowerCase().includes(searchLower);
+    if (!debouncedSearchTerm) return true;
     
-    return matchesSearch;
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    return paper.papertitle?.toLowerCase().includes(searchLower) ||
+           paper.coauthors?.toLowerCase().includes(searchLower) ||
+           paper.journal?.title?.toLowerCase().includes(searchLower) ||
+           paper.publishername?.toLowerCase().includes(searchLower) ||
+           paper.salevelone?.name?.toLowerCase().includes(searchLower);
   });
 
-  // Sort the filtered papers
   const sortedPapers = [...filteredPapers].sort((a, b) => {
     let comparison = 0;
     
@@ -60,15 +72,28 @@ const DataDisplay: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch("https://easydash.enago.com/acceptedpapers");
+        const response = await fetch("https://easydash.enago.com/acceptedpapers", {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+        });
+
         if (!response.ok) {
-          throw new Error(`Failed to fetch: ${response.status}`);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
+        
         const data = await response.json();
+        if (Array.isArray(data)) {
         setAllResearchPapers(data);
+        } else {
+          throw new Error("Invalid data format received from API");
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
-        console.error("Error:", err);
+        const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+        setError(errorMessage);
+        console.error("API Error:", err);
       } finally {
         setLoading(false);
       }
@@ -82,15 +107,28 @@ const DataDisplay: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("https://easydash.enago.com/acceptedpapers");
+      const response = await fetch("https://easydash.enago.com/acceptedpapers", {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      
       if (!response.ok) {
-        throw new Error(`Failed to fetch: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+      
       const data = await response.json();
+      if (Array.isArray(data)) {
       setAllResearchPapers(data);
+      } else {
+        throw new Error("Invalid data format received from API");
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      console.error("Error:", err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+      setError(errorMessage);
+      console.error("Refresh Error:", err);
     } finally {
       setLoading(false);
     }
@@ -100,7 +138,7 @@ const DataDisplay: React.FC = () => {
   if (loading) {
     return (
       <div className="loading-container">
-        <LoadingSpinner size="lg" text="Loading papers..." />
+        <LoadingSpinner size="xl" />
       </div>
     );
   }
@@ -123,7 +161,7 @@ const DataDisplay: React.FC = () => {
             />
           </svg>
         </div>
-        <h2 className="error-title">Couldn't load papers</h2>
+        <h2 className="error-title">Couldn&apos;t load papers</h2>
         <p className="error-message">{error}</p>
         <Button onClick={handleRefresh} variant="primary">
           Try Again
@@ -136,8 +174,8 @@ const DataDisplay: React.FC = () => {
     <div className="container mx-auto px-4 py-8 pb-16">
       <div className="search-section">
         <div className="search-header">
-          <h1>Research Publications</h1>
-          <p>Academic papers and medical research publications</p>
+          <h1>Crimson Interactive Assessment</h1>
+          <p>Research Publications</p>
         </div>
 
         <div className="search-controls">
@@ -145,14 +183,26 @@ const DataDisplay: React.FC = () => {
             <label htmlFor="search-input" className="sr-only">
               Search papers, authors, or journals
             </label>
+            <div className="search-input-wrapper">
             <input
-              id="search-input"
+                id="search-input"
               type="text"
-              placeholder="Search papers, authors, or journals..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              aria-label="Search papers, authors, or journals"
-            />
+                placeholder="Search papers, authors, or journals..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                aria-label="Search papers, authors, or journals"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  className="search-clear"
+                  onClick={() => setSearchTerm("")}
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
+            </div>
           </div>
           <div className="filter-controls">
             <label htmlFor="sort-select" className="sr-only">
@@ -187,7 +237,7 @@ const DataDisplay: React.FC = () => {
         <div className="search-footer">
           <div className="results-info">
             {sortedPapers.length} papers found
-            {searchTerm && ` for "${searchTerm}"`}
+            {debouncedSearchTerm && ` for "${debouncedSearchTerm}"`}
           </div>
           <div className="export-controls">
             <div className="items-per-page">
@@ -344,64 +394,65 @@ const DataDisplay: React.FC = () => {
                 </div>
 
                 <div className="detail-section">
-                      <h3 className="detail-label">Impact Factor & Metrics</h3>
+                  <h3 className="detail-label">Impact Factor</h3>
+                  <p className="detail-value">{selectedPaper.journal.impactfactor}</p>
+                </div>
+
+                {(selectedPaper.journal.country || selectedPaper.journal.quartile || selectedPaper.journal.acceptance_rate || selectedPaper.citation_count || selectedPaper.download_count || selectedPaper.view_count) && (
+                  <div className="detail-section">
+                    <h3 className="detail-label">Additional Metrics</h3>
                   <div className="metrics-grid">
-                    <div className="metric-item">
-                      <span className="metric-label">Impact Factor</span>
+                      {selectedPaper.journal.country && (
+                        <div className="metric-item">
+                          <span className="metric-label">Country</span>
                           <span className="metric-value">
-                        {selectedPaper.journal.impactfactor}
+                            {selectedPaper.journal.country}
+                          </span>
+                        </div>
+                      )}
+                      {selectedPaper.journal.quartile && (
+                    <div className="metric-item">
+                          <span className="metric-label">Quartile</span>
+                          <span className="metric-value">
+                            {selectedPaper.journal.quartile}
                       </span>
                     </div>
-                        {selectedPaper.journal.country && (
-                          <div className="metric-item">
-                            <span className="metric-label">Country</span>
-                            <span className="metric-value">
-                              {selectedPaper.journal.country}
-                            </span>
-                          </div>
-                        )}
-                        {selectedPaper.journal.quartile && (
-                          <div className="metric-item">
-                            <span className="metric-label">Quartile</span>
-                            <span className="metric-value">
-                              {selectedPaper.journal.quartile}
-                            </span>
-                          </div>
-                        )}
-                        {selectedPaper.journal.acceptance_rate && (
+                      )}
+                      {selectedPaper.journal.acceptance_rate && (
                       <div className="metric-item">
-                            <span className="metric-label">Acceptance Rate</span>
+                          <span className="metric-label">Acceptance Rate</span>
                         <span className="metric-value">
-                              {selectedPaper.journal.acceptance_rate}%
+                            {selectedPaper.journal.acceptance_rate}%
                         </span>
                       </div>
                     )}
-                        {selectedPaper.citation_count && (
+                      {selectedPaper.citation_count && (
                       <div className="metric-item">
-                            <span className="metric-label">Citations</span>
+                          <span className="metric-label">Citations</span>
                         <span className="metric-value">
-                              {selectedPaper.citation_count}
+                            {selectedPaper.citation_count}
                         </span>
                       </div>
                     )}
-                        {selectedPaper.download_count && (
+                      {selectedPaper.download_count && (
                       <div className="metric-item">
-                            <span className="metric-label">Downloads</span>
+                          <span className="metric-label">Downloads</span>
                         <span className="metric-value">
-                              {selectedPaper.download_count}
+                            {selectedPaper.download_count}
                         </span>
                       </div>
                     )}
-                        {selectedPaper.view_count && (
+                      {selectedPaper.view_count && (
                       <div className="metric-item">
-                            <span className="metric-label">Views</span>
+                          <span className="metric-label">Views</span>
                         <span className="metric-value">
-                              {selectedPaper.view_count}
+                            {selectedPaper.view_count}
                         </span>
                       </div>
                     )}
                   </div>
                 </div>
+                )}
 
                 <div className="detail-section">
                   <h3 className="detail-label">Subject Area</h3>
@@ -639,7 +690,7 @@ const DataDisplay: React.FC = () => {
                           {selectedPaper.tags.map((tag, index) => (
                             <span key={index} className="tag">
                               {tag}
-                              {index < selectedPaper.tags.length - 1 && ', '}
+                              {index < (selectedPaper.tags?.length || 0) - 1 && ', '}
                             </span>
                           ))}
                     </p>
