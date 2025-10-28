@@ -11,6 +11,7 @@ const DataDisplay: React.FC = () => {
   const [selectedPaper, setSelectedPaper] = useState<ResearchPaper | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"date" | "impact" | "title">("date");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const [allResearchPapers, setAllResearchPapers] = useState<ResearchPaper[]>([]);
@@ -30,16 +31,23 @@ const DataDisplay: React.FC = () => {
 
   // Sort the filtered papers
   const sortedPapers = [...filteredPapers].sort((a, b) => {
+    let comparison = 0;
+    
     switch (sortBy) {
       case "date":
-        return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+        comparison = new Date(a.published_at).getTime() - new Date(b.published_at).getTime();
+        break;
       case "impact":
-        return b.journal.impactfactor - a.journal.impactfactor;
+        comparison = a.journal.impactfactor - b.journal.impactfactor;
+        break;
       case "title":
-        return a.papertitle.localeCompare(b.papertitle);
+        comparison = a.papertitle.localeCompare(b.papertitle);
+        break;
       default:
         return 0;
     }
+    
+    return sortOrder === "asc" ? comparison : -comparison;
   });
 
   const totalPages = Math.ceil(sortedPapers.length / itemsPerPage);
@@ -160,6 +168,19 @@ const DataDisplay: React.FC = () => {
               <option value="impact">Sort by Impact Factor</option>
               <option value="title">Sort by Title</option>
             </select>
+            
+            <label htmlFor="order-select" className="sr-only">
+              Sort order
+            </label>
+            <select
+              id="order-select"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as "asc" | "desc")}
+              aria-label="Sort order"
+            >
+              <option value="desc">Descending</option>
+              <option value="asc">Ascending</option>
+            </select>
           </div>
         </div>
 
@@ -236,20 +257,20 @@ const DataDisplay: React.FC = () => {
              <div className="pagination-controls" role="navigation" aria-label="Pagination">
                <div className="pagination-numbers" role="group" aria-label="Page numbers">
                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                   (pageNum) => (
-                     <button
-                       key={pageNum}
-                       onClick={() => setCurrentPage(pageNum)}
-                       className={`pagination-number ${
-                         currentPage === pageNum
-                           ? "pagination-number--active"
-                           : ""
-                       }`}
+                     (pageNum) => (
+                       <button
+                         key={pageNum}
+                         onClick={() => setCurrentPage(pageNum)}
+                         className={`pagination-number ${
+                           currentPage === pageNum
+                             ? "pagination-number--active"
+                             : ""
+                         }`}
                        aria-label={`Go to page ${pageNum}`}
                        aria-current={currentPage === pageNum ? "page" : undefined}
-                     >
-                       {pageNum}
-                     </button>
+                       >
+                         {pageNum}
+                       </button>
                    )
                  )}
                </div>
@@ -272,17 +293,17 @@ const DataDisplay: React.FC = () => {
               </button>
             </div>
             <div className="modal-body">
-                <div className="paper-details">
-                  <div className="detail-section">
+              <div className="paper-details">
+                <div className="detail-section">
                     <h3 className="detail-label">Title</h3>
-                    <p className="detail-value detail-value--title">
-                      {selectedPaper.papertitle}
-                    </p>
-                  </div>
+                  <p className="detail-value detail-value--title">
+                    {selectedPaper.papertitle}
+                  </p>
+                </div>
 
-                  <div className="detail-section">
-                    <h3 className="detail-label">Authors</h3>
-                    <p className="detail-value">{selectedPaper.coauthors}</p>
+                <div className="detail-section">
+                  <h3 className="detail-label">Authors</h3>
+                  <p className="detail-value">{selectedPaper.coauthors}</p>
                     {selectedPaper.authors && selectedPaper.authors.length > 0 && (
                       <div className="authors-detailed">
                         {selectedPaper.authors.map((author, index) => (
@@ -296,41 +317,41 @@ const DataDisplay: React.FC = () => {
                             </p>
                           </div>
                         ))}
-                      </div>
+                </div>
                     )}
                   </div>
 
-                    <div className="detail-section">
+                <div className="detail-section">
                       <h3 className="detail-label">Journal</h3>
-                      <p className="detail-value detail-value--title">
-                        {selectedPaper.journal.title}
+                    <p className="detail-value detail-value--title">
+                      {selectedPaper.journal.title}
+                    </p>
+                    {selectedPaper.journal.journalabbreviation && (
+                      <p className="detail-value detail-value--secondary">
+                        {selectedPaper.journal.journalabbreviation}
                       </p>
-                      {selectedPaper.journal.journalabbreviation && (
-                        <p className="detail-value detail-value--secondary">
-                          {selectedPaper.journal.journalabbreviation}
-                        </p>
-                      )}
-                      {selectedPaper.journal.issn && (
-                        <p className="detail-value detail-value--secondary">
-                          ISSN: {selectedPaper.journal.issn}
-                        </p>
-                      )}
+                    )}
+                    {selectedPaper.journal.issn && (
+                      <p className="detail-value detail-value--secondary">
+                        ISSN: {selectedPaper.journal.issn}
+                      </p>
+                    )}
                       {selectedPaper.journal.eissn && (
-                        <p className="detail-value detail-value--secondary">
+                      <p className="detail-value detail-value--secondary">
                           E-ISSN: {selectedPaper.journal.eissn}
-                        </p>
-                      )}
-                    </div>
+                      </p>
+                    )}
+                </div>
 
-                    <div className="detail-section">
+                <div className="detail-section">
                       <h3 className="detail-label">Impact Factor & Metrics</h3>
-                      <div className="metrics-grid">
-                        <div className="metric-item">
-                          <span className="metric-label">Impact Factor</span>
+                  <div className="metrics-grid">
+                    <div className="metric-item">
+                      <span className="metric-label">Impact Factor</span>
                           <span className="metric-value">
-                            {selectedPaper.journal.impactfactor}
-                          </span>
-                        </div>
+                        {selectedPaper.journal.impactfactor}
+                      </span>
+                    </div>
                         {selectedPaper.journal.country && (
                           <div className="metric-item">
                             <span className="metric-label">Country</span>
@@ -348,39 +369,39 @@ const DataDisplay: React.FC = () => {
                           </div>
                         )}
                         {selectedPaper.journal.acceptance_rate && (
-                          <div className="metric-item">
+                      <div className="metric-item">
                             <span className="metric-label">Acceptance Rate</span>
-                            <span className="metric-value">
+                        <span className="metric-value">
                               {selectedPaper.journal.acceptance_rate}%
-                            </span>
-                          </div>
-                        )}
-                        {selectedPaper.citation_count && (
-                          <div className="metric-item">
-                            <span className="metric-label">Citations</span>
-                            <span className="metric-value">
-                              {selectedPaper.citation_count}
-                            </span>
-                          </div>
-                        )}
-                        {selectedPaper.download_count && (
-                          <div className="metric-item">
-                            <span className="metric-label">Downloads</span>
-                            <span className="metric-value">
-                              {selectedPaper.download_count}
-                            </span>
-                          </div>
-                        )}
-                        {selectedPaper.view_count && (
-                          <div className="metric-item">
-                            <span className="metric-label">Views</span>
-                            <span className="metric-value">
-                              {selectedPaper.view_count}
-                            </span>
-                          </div>
-                        )}
+                        </span>
                       </div>
-                    </div>
+                    )}
+                        {selectedPaper.citation_count && (
+                      <div className="metric-item">
+                            <span className="metric-label">Citations</span>
+                        <span className="metric-value">
+                              {selectedPaper.citation_count}
+                        </span>
+                      </div>
+                    )}
+                        {selectedPaper.download_count && (
+                      <div className="metric-item">
+                            <span className="metric-label">Downloads</span>
+                        <span className="metric-value">
+                              {selectedPaper.download_count}
+                        </span>
+                      </div>
+                    )}
+                        {selectedPaper.view_count && (
+                      <div className="metric-item">
+                            <span className="metric-label">Views</span>
+                        <span className="metric-value">
+                              {selectedPaper.view_count}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
 
                 <div className="detail-section">
                   <h3 className="detail-label">Subject Area</h3>
@@ -392,24 +413,24 @@ const DataDisplay: React.FC = () => {
                   <p className="detail-value">{selectedPaper.publishername}</p>
                 </div>
 
-                    <div className="detail-section">
+                <div className="detail-section">
                       <h3 className="detail-label">Service</h3>
-                      <p className="detail-value">
-                        {selectedPaper.servicetype.servicename}
-                      </p>
+                  <p className="detail-value">
+                    {selectedPaper.servicetype.servicename}
+                  </p>
                       {selectedPaper.servicetype.description && (
-                        <p className="detail-value detail-value--secondary">
+                    <p className="detail-value detail-value--secondary">
                           {selectedPaper.servicetype.description}
-                        </p>
-                      )}
-                    </div>
+                    </p>
+                  )}
+                </div>
 
-                    <div className="detail-section">
+                  <div className="detail-section">
                       <h3 className="detail-label">Published</h3>
                       <p className="detail-value">
                         {new Date(selectedPaper.published_at).toLocaleDateString()}
                       </p>
-                      <p className="detail-value detail-value--secondary">
+                        <p className="detail-value detail-value--secondary">
                         {new Date(selectedPaper.published_at).toLocaleDateString('en-US', { 
                           weekday: 'long', 
                           year: 'numeric', 
@@ -601,34 +622,34 @@ const DataDisplay: React.FC = () => {
                       <div className="detail-section">
                         <h3 className="detail-label">Open Access</h3>
                         <p className="detail-value">{selectedPaper.open_access ? 'Yes' : 'No'}</p>
-                      </div>
+                    </div>
                     )}
 
                     {selectedPaper.peer_reviewed !== undefined && (
                       <div className="detail-section">
                         <h3 className="detail-label">Peer Reviewed</h3>
                         <p className="detail-value">{selectedPaper.peer_reviewed ? 'Yes' : 'No'}</p>
-                      </div>
-                    )}
+                  </div>
+                )}
 
                     {selectedPaper.tags && selectedPaper.tags.length > 0 && (
-                      <div className="detail-section">
+                  <div className="detail-section">
                         <h3 className="detail-label">Tags</h3>
-                        <p className="detail-value">
+                    <p className="detail-value">
                           {selectedPaper.tags.map((tag, index) => (
                             <span key={index} className="tag">
                               {tag}
                               {index < selectedPaper.tags.length - 1 && ', '}
                             </span>
                           ))}
-                        </p>
-                      </div>
-                    )}
+                    </p>
+                  </div>
+                )}
 
                     {selectedPaper.categories && selectedPaper.categories.length > 0 && (
-                      <div className="detail-section">
+                <div className="detail-section">
                         <h3 className="detail-label">Categories</h3>
-                        <p className="detail-value">
+                    <p className="detail-value">
                           {selectedPaper.categories.join(', ')}
                         </p>
                       </div>
@@ -655,12 +676,12 @@ const DataDisplay: React.FC = () => {
                             </p>
                           ))}
                           {selectedPaper.references.length > 10 && (
-                            <p className="detail-value detail-value--secondary">
+                    <p className="detail-value detail-value--secondary">
                               ... and {selectedPaper.references.length - 10} more references
                             </p>
                           )}
-                        </div>
-                      </div>
+                  </div>
+                </div>
                     )}
 
                 {selectedPaper.articlelink && (
@@ -677,7 +698,7 @@ const DataDisplay: React.FC = () => {
                   </div>
                 )}
               </div>
-                </div>
+            </div>
           </div>
         </div>
       )}

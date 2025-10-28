@@ -100,7 +100,6 @@ export const ResearchPaperCard: React.FC<{
         </div>
       </div>
 
-      <div className="research-paper-card__divider"></div>
 
       <div className="research-paper-card__right">
         <div className="research-paper-card__detail">
