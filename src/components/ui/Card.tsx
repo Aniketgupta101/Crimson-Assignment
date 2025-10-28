@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CardProps } from '../../types';
+import { CardProps, ResearchPaper } from '../../types';
 
 const Card: React.FC<CardProps> = ({
   children,
@@ -60,9 +60,10 @@ const Card: React.FC<CardProps> = ({
 };
 
 export const ResearchPaperCard: React.FC<{
-  paper: any;
+  paper: ResearchPaper;
   className?: string;
 }> = ({ paper, className = '' }) => {
+  // Helper to build full image URLs
   const getImageUrl = (imagePath: string | undefined): string => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;
@@ -109,46 +110,19 @@ export const ResearchPaperCard: React.FC<{
         
         <div className="research-paper-card__detail">
           <span className="research-paper-card__label">Authors:</span>
-          <span className="research-paper-card__value">{paper.coauthors}</span>
+          <span className="research-paper-card__value research-paper-card__value--single-line">{paper.coauthors}</span>
         </div>
         
         <div className="research-paper-card__detail">
           <span className="research-paper-card__label">Publisher:</span>
-          <span className="research-paper-card__value">{paper.publishername}</span>
+          <span className="research-paper-card__value research-paper-card__value--single-line">{paper.publishername}</span>
         </div>
         
         <div className="research-paper-card__detail">
           <span className="research-paper-card__label">Journal:</span>
-          <span className="research-paper-card__value">{paper.journal.title}</span>
+          <span className="research-paper-card__value research-paper-card__value--single-line">{paper.journal.title}</span>
         </div>
         
-        <div className="research-paper-card__detail">
-          <span className="research-paper-card__label">Subject Area:</span>
-          <span className="research-paper-card__value">{paper.salevelone.name}</span>
-        </div>
-        
-        <div className="research-paper-card__detail">
-          <span className="research-paper-card__label">Service:</span>
-          <div className="research-paper-card__service">
-            {paper.servicetype?.icon?.url && (
-              <div className="research-paper-card__service-icon">
-                <img
-                  src={getImageUrl(paper.servicetype.icon.url)}
-                  alt={paper.servicetype.icon.alternativeText || 'Service Icon'}
-                  className="research-paper-card__service-icon-image"
-                />
-              </div>
-            )}
-            <span className="research-paper-card__value">{paper.servicetype.servicename}</span>
-          </div>
-        </div>
-        
-        <div className="research-paper-card__detail">
-          <span className="research-paper-card__label">Published:</span>
-          <span className="research-paper-card__value">
-            {new Date(paper.published_at).toLocaleDateString()}
-          </span>
-        </div>
       </div>
     </div>
   );

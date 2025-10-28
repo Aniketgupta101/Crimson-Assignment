@@ -141,3 +141,135 @@ export interface SelectProps extends BaseComponentProps {
   required?: boolean;
   label?: string;
 }
+
+export interface ResearchPaper {
+  id: number;
+  papertitle: string;
+  coauthors: string;
+  published_at: string;
+  articlelink?: string;
+  doi?: string;
+  abstract?: string;
+  keywords?: string[];
+  publishername: string;
+  volume?: string;
+  issue?: string;
+  pages?: string;
+  language?: string;
+  citation_count?: number;
+  download_count?: number;
+  view_count?: number;
+  peer_reviewed?: boolean;
+  open_access?: boolean;
+  license?: string;
+  funding?: string;
+  acknowledgments?: string;
+  methodology?: string;
+  results?: string;
+  conclusions?: string;
+  limitations?: string;
+  future_work?: string;
+  research_type?: string;
+  study_design?: string;
+  sample_size?: number;
+  data_collection_period?: string;
+  ethical_approval?: string;
+  conflicts_of_interest?: string;
+  author_contributions?: string;
+  data_availability?: string;
+  supplementary_materials?: string;
+  related_papers?: string[];
+  references?: string[];
+  journal: {
+    id: number;
+    title: string;
+    journalabbreviation?: string;
+    impactfactor: number;
+    issn?: string;
+    eissn?: string;
+    country?: string;
+    website?: string;
+    description?: string;
+    publisher?: string;
+    founded_year?: number;
+    frequency?: string;
+    editor_in_chief?: string;
+    editorial_board?: string[];
+    indexing?: string[];
+    quartile?: string;
+    category?: string;
+    scope?: string;
+    submission_guidelines?: string;
+    review_process?: string;
+    acceptance_rate?: number;
+    average_review_time?: string;
+    publication_fee?: string;
+  };
+  salevelone: {
+    id: number;
+    name: string;
+    description?: string;
+    icon?: {
+      url: string;
+      alternativeText?: string;
+    };
+    parent_category?: string;
+    subcategories?: string[];
+  };
+  servicetype: {
+    id: number;
+    servicename: string;
+    description?: string;
+    price?: number;
+    currency?: string;
+    duration?: string;
+    features?: string[];
+    requirements?: string[];
+  };
+  authors?: {
+    id: number;
+    name: string;
+    email?: string;
+    affiliation?: string;
+    orcid?: string;
+    research_interests?: string[];
+    h_index?: number;
+    citation_count?: number;
+    publications_count?: number;
+    is_corresponding?: boolean;
+    order?: number;
+  }[];
+  institutions?: {
+    id: number;
+    name: string;
+    country?: string;
+    city?: string;
+    type?: string;
+    ranking?: number;
+    website?: string;
+  }[];
+  funding_sources?: {
+    id: number;
+    name: string;
+    grant_number?: string;
+    amount?: number;
+    currency?: string;
+    duration?: string;
+  }[];
+  metrics?: {
+    altmetric_score?: number;
+    citation_count?: number;
+    download_count?: number;
+    view_count?: number;
+    social_media_shares?: number;
+    news_mentions?: number;
+    blog_mentions?: number;
+  };
+  tags?: string[];
+  categories?: string[];
+  status?: string;
+  version?: string;
+  last_updated?: string;
+  created_at?: string;
+  updated_at?: string;
+}

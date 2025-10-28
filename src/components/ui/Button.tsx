@@ -49,10 +49,12 @@ const Button: React.FC<ButtonProps> = ({
       className={buttonClasses}
       onClick={handleClick}
       disabled={disabled || loading}
+      aria-disabled={disabled || loading}
+      aria-label={loading ? "Loading..." : undefined}
       {...props}
     >
       {loading && (
-        <span className="spinner mr-2" />
+        <span className="spinner mr-2" aria-hidden="true" />
       )}
       {children}
     </button>
