@@ -180,6 +180,8 @@ export interface ResearchPaper {
   supplementary_materials?: string;
   related_papers?: string[];
   references?: string[];
+  image?: string;
+  figure?: string;
   journal: {
     id: number;
     title: string;

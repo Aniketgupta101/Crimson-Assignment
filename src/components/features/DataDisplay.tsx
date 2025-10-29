@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { ResearchPaperCard } from "../ui/Card";
 import Button from "../ui/Button";
 import LoadingSpinner from "../ui/LoadingSpinner";
@@ -18,6 +19,22 @@ const DataDisplay: React.FC = () => {
   const [allResearchPapers, setAllResearchPapers] = useState<ResearchPaper[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Helper function to get image URL (same as in Card component)
+  const getImageUrl = (imagePath: string | undefined): string => {
+    if (!imagePath) return '';
+    if (imagePath.startsWith('http')) return imagePath;
+    return `https://easydash.enago.com${imagePath}`;
+  };
+
+  // Helper function to get image for popup (with fallback)
+  const getPopupImageUrl = (paper: ResearchPaper): string => {
+    if (paper.salevelone?.icon?.url) {
+      return getImageUrl(paper.salevelone.icon.url);
+    }
+    // Fallback to a placeholder image based on paper ID
+    return `https://picsum.photos/400/300?random=${paper.id}`;
+  };
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -343,7 +360,8 @@ const DataDisplay: React.FC = () => {
               </button>
             </div>
             <div className="modal-body">
-              <div className="paper-details">
+              <div className="modal-content-wrapper">
+                <div className="paper-details">
                 <div className="detail-section">
                     <h3 className="detail-label">Title</h3>
                   <p className="detail-value detail-value--title">
@@ -748,6 +766,33 @@ const DataDisplay: React.FC = () => {
                     </a>
                   </div>
                 )}
+                </div>
+                
+                <div className="paper-image">
+                  <div className="image-container">
+                    <Image 
+                      src={getPopupImageUrl(selectedPaper)} 
+                      alt={selectedPaper.salevelone?.icon?.alternativeText || 'Paper Image'}
+                      className="paper-image-display"
+                      width={400}
+                      height={300}
+                      style={{ objectFit: 'contain' }}
+                      onError={(e) => {
+                        // If image fails to load, show a fallback placeholder
+                        e.currentTarget.style.display = 'none';
+                        const container = e.currentTarget.parentElement;
+                        if (container) {
+                          container.innerHTML = `
+                            <div class="no-image-placeholder">
+                              <div class="placeholder-icon">📄</div>
+                              <p class="placeholder-text">Image unavailable</p>
+                            </div>
+                          `;
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>
