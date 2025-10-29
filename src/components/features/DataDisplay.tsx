@@ -5,9 +5,9 @@ import { ResearchPaperCard } from "../ui/Card";
 import Button from "../ui/Button";
 import LoadingSpinner from "../ui/LoadingSpinner";
 import { ResearchPaper } from "../../types";
-import { exportToCSV, exportToPDF } from "../../utils/export";
+import { downloadPapersAsCSV, openPrintPreviewForPapers } from "../../utils/export";
 
-const DataDisplay: React.FC = () => {
+const PapersBrowser: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedPaper, setSelectedPaper] = useState<ResearchPaper | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -20,17 +20,17 @@ const DataDisplay: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper function to get image URL (same as in Card component)
-  const getImageUrl = (imagePath: string | undefined): string => {
+  // Helper function to resolve image URL (same as in Card component)
+  const resolveImageUrl = (imagePath: string | undefined): string => {
     if (!imagePath) return '';
     if (imagePath.startsWith('http')) return imagePath;
     return `https://easydash.enago.com${imagePath}`;
   };
 
-  // Helper function to get image for popup (with fallback)
-  const getPopupImageUrl = (paper: ResearchPaper): string => {
+  // Helper to build popup image URL with fallback
+  const buildPopupImageUrl = (paper: ResearchPaper): string => {
     if (paper.salevelone?.icon?.url) {
-      return getImageUrl(paper.salevelone.icon.url);
+      return resolveImageUrl(paper.salevelone.icon.url);
     }
     // Fallback to a placeholder image based on paper ID
     return `https://picsum.photos/400/300?random=${paper.id}`;
@@ -50,18 +50,18 @@ const DataDisplay: React.FC = () => {
 
   const filteredPapers = allResearchPapers.filter(paper => {
     if (!debouncedSearchTerm) return true;
-    
+
     const searchLower = debouncedSearchTerm.toLowerCase();
     return paper.papertitle?.toLowerCase().includes(searchLower) ||
-           paper.coauthors?.toLowerCase().includes(searchLower) ||
-           paper.journal?.title?.toLowerCase().includes(searchLower) ||
-           paper.publishername?.toLowerCase().includes(searchLower) ||
-           paper.salevelone?.name?.toLowerCase().includes(searchLower);
+      paper.coauthors?.toLowerCase().includes(searchLower) ||
+      paper.journal?.title?.toLowerCase().includes(searchLower) ||
+      paper.publishername?.toLowerCase().includes(searchLower) ||
+      paper.salevelone?.name?.toLowerCase().includes(searchLower);
   });
 
   const sortedPapers = [...filteredPapers].sort((a, b) => {
     let comparison = 0;
-    
+
     switch (sortBy) {
       case "date":
         comparison = new Date(a.published_at).getTime() - new Date(b.published_at).getTime();
@@ -75,7 +75,7 @@ const DataDisplay: React.FC = () => {
       default:
         return 0;
     }
-    
+
     return sortOrder === "asc" ? comparison : -comparison;
   });
 
@@ -100,10 +100,10 @@ const DataDisplay: React.FC = () => {
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
-        
+
         const data = await response.json();
         if (Array.isArray(data)) {
-        setAllResearchPapers(data);
+          setAllResearchPapers(data);
         } else {
           throw new Error("Invalid data format received from API");
         }
@@ -131,14 +131,14 @@ const DataDisplay: React.FC = () => {
           'Content-Type': 'application/json',
         },
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
       if (Array.isArray(data)) {
-      setAllResearchPapers(data);
+        setAllResearchPapers(data);
       } else {
         throw new Error("Invalid data format received from API");
       }
@@ -201,9 +201,9 @@ const DataDisplay: React.FC = () => {
               Search papers, authors, or journals
             </label>
             <div className="search-input-wrapper">
-            <input
+              <input
                 id="search-input"
-              type="text"
+                type="text"
                 placeholder="Search papers, authors, or journals..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -235,7 +235,7 @@ const DataDisplay: React.FC = () => {
               <option value="impact">Sort by Impact Factor</option>
               <option value="title">Sort by Title</option>
             </select>
-            
+
             <label htmlFor="order-select" className="sr-only">
               Sort order
             </label>
@@ -271,13 +271,13 @@ const DataDisplay: React.FC = () => {
             </div>
             <div className="export-buttons">
               <button
-                onClick={() => exportToCSV(sortedPapers)}
+                onClick={() => downloadPapersAsCSV(sortedPapers)}
                 className="csv-btn"
               >
                 Export CSV
               </button>
               <button
-                onClick={() => exportToPDF(sortedPapers)}
+                onClick={() => openPrintPreviewForPapers(sortedPapers)}
                 className="pdf-btn"
               >
                 Export PDF
@@ -311,41 +311,40 @@ const DataDisplay: React.FC = () => {
         </div>
       ) : null}
 
-       {sortedPapers.length > 0 && (
-         <div className="pagination-bottom">
-           <div className="flex justify-center items-center gap-4">
-             <div className="pagination-info">
-               <span className="text-sm text-gray-600">
-                 Showing {startIndex + 1}-
-                 {Math.min(endIndex, sortedPapers.length)} of{" "}
-                 {sortedPapers.length} papers
-               </span>
-             </div>
-             <div className="pagination-controls" role="navigation" aria-label="Pagination">
-               <div className="pagination-numbers" role="group" aria-label="Page numbers">
-                 {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                     (pageNum) => (
-                       <button
-                         key={pageNum}
-                         onClick={() => setCurrentPage(pageNum)}
-                         className={`pagination-number ${
-                           currentPage === pageNum
-                             ? "pagination-number--active"
-                             : ""
-                         }`}
-                       aria-label={`Go to page ${pageNum}`}
-                       aria-current={currentPage === pageNum ? "page" : undefined}
-                       >
-                         {pageNum}
-                       </button>
-                   )
-                 )}
-               </div>
-               
-             </div>
-           </div>
-         </div>
-       )}
+      {sortedPapers.length > 0 && (
+        <div className="pagination-bottom">
+          <div className="flex justify-center items-center gap-4">
+            <div className="pagination-info">
+              <span className="text-sm text-gray-600">
+                Showing {startIndex + 1}-
+                {Math.min(endIndex, sortedPapers.length)} of{" "}
+                {sortedPapers.length} papers
+              </span>
+            </div>
+            <div className="pagination-controls" role="navigation" aria-label="Pagination">
+              <div className="pagination-numbers" role="group" aria-label="Page numbers">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (pageNum) => (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`pagination-number ${currentPage === pageNum
+                          ? "pagination-number--active"
+                          : ""
+                        }`}
+                      aria-label={`Go to page ${pageNum}`}
+                      aria-current={currentPage === pageNum ? "page" : undefined}
+                    >
+                      {pageNum}
+                    </button>
+                  )
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedPaper && (
         <div className="modal-overlay" onClick={() => setSelectedPaper(null)}>
@@ -362,16 +361,16 @@ const DataDisplay: React.FC = () => {
             <div className="modal-body">
               <div className="modal-content-wrapper">
                 <div className="paper-details">
-                <div className="detail-section">
+                  <div className="detail-section">
                     <h3 className="detail-label">Title</h3>
-                  <p className="detail-value detail-value--title">
-                    {selectedPaper.papertitle}
-                  </p>
-                </div>
+                    <p className="detail-value detail-value--title">
+                      {selectedPaper.papertitle}
+                    </p>
+                  </div>
 
-                <div className="detail-section">
-                  <h3 className="detail-label">Authors</h3>
-                  <p className="detail-value">{selectedPaper.coauthors}</p>
+                  <div className="detail-section">
+                    <h3 className="detail-label">Authors</h3>
+                    <p className="detail-value">{selectedPaper.coauthors}</p>
                     {selectedPaper.authors && selectedPaper.authors.length > 0 && (
                       <div className="authors-detailed">
                         {selectedPaper.authors.map((author, index) => (
@@ -385,12 +384,12 @@ const DataDisplay: React.FC = () => {
                             </p>
                           </div>
                         ))}
-                </div>
+                      </div>
                     )}
                   </div>
 
-                <div className="detail-section">
-                      <h3 className="detail-label">Journal</h3>
+                  <div className="detail-section">
+                    <h3 className="detail-label">Journal</h3>
                     <p className="detail-value detail-value--title">
                       {selectedPaper.journal.title}
                     </p>
@@ -404,374 +403,374 @@ const DataDisplay: React.FC = () => {
                         ISSN: {selectedPaper.journal.issn}
                       </p>
                     )}
-                      {selectedPaper.journal.eissn && (
+                    {selectedPaper.journal.eissn && (
                       <p className="detail-value detail-value--secondary">
-                          E-ISSN: {selectedPaper.journal.eissn}
+                        E-ISSN: {selectedPaper.journal.eissn}
                       </p>
                     )}
-                </div>
+                  </div>
 
-                <div className="detail-section">
-                  <h3 className="detail-label">Impact Factor</h3>
-                  <p className="detail-value">{selectedPaper.journal.impactfactor}</p>
-                </div>
-
-                {(selectedPaper.journal.country || selectedPaper.journal.quartile || selectedPaper.journal.acceptance_rate || selectedPaper.citation_count || selectedPaper.download_count || selectedPaper.view_count) && (
                   <div className="detail-section">
-                    <h3 className="detail-label">Additional Metrics</h3>
-                  <div className="metrics-grid">
-                      {selectedPaper.journal.country && (
-                        <div className="metric-item">
-                          <span className="metric-label">Country</span>
-                          <span className="metric-value">
-                            {selectedPaper.journal.country}
-                          </span>
-                        </div>
-                      )}
-                      {selectedPaper.journal.quartile && (
-                    <div className="metric-item">
-                          <span className="metric-label">Quartile</span>
-                          <span className="metric-value">
-                            {selectedPaper.journal.quartile}
-                      </span>
+                    <h3 className="detail-label">Impact Factor</h3>
+                    <p className="detail-value">{selectedPaper.journal.impactfactor}</p>
+                  </div>
+
+                  {(selectedPaper.journal.country || selectedPaper.journal.quartile || selectedPaper.journal.acceptance_rate || selectedPaper.citation_count || selectedPaper.download_count || selectedPaper.view_count) && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Additional Metrics</h3>
+                      <div className="metrics-grid">
+                        {selectedPaper.journal.country && (
+                          <div className="metric-item">
+                            <span className="metric-label">Country</span>
+                            <span className="metric-value">
+                              {selectedPaper.journal.country}
+                            </span>
+                          </div>
+                        )}
+                        {selectedPaper.journal.quartile && (
+                          <div className="metric-item">
+                            <span className="metric-label">Quartile</span>
+                            <span className="metric-value">
+                              {selectedPaper.journal.quartile}
+                            </span>
+                          </div>
+                        )}
+                        {selectedPaper.journal.acceptance_rate && (
+                          <div className="metric-item">
+                            <span className="metric-label">Acceptance Rate</span>
+                            <span className="metric-value">
+                              {selectedPaper.journal.acceptance_rate}%
+                            </span>
+                          </div>
+                        )}
+                        {selectedPaper.citation_count && (
+                          <div className="metric-item">
+                            <span className="metric-label">Citations</span>
+                            <span className="metric-value">
+                              {selectedPaper.citation_count}
+                            </span>
+                          </div>
+                        )}
+                        {selectedPaper.download_count && (
+                          <div className="metric-item">
+                            <span className="metric-label">Downloads</span>
+                            <span className="metric-value">
+                              {selectedPaper.download_count}
+                            </span>
+                          </div>
+                        )}
+                        {selectedPaper.view_count && (
+                          <div className="metric-item">
+                            <span className="metric-label">Views</span>
+                            <span className="metric-value">
+                              {selectedPaper.view_count}
+                            </span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                      )}
-                      {selectedPaper.journal.acceptance_rate && (
-                      <div className="metric-item">
-                          <span className="metric-label">Acceptance Rate</span>
-                        <span className="metric-value">
-                            {selectedPaper.journal.acceptance_rate}%
-                        </span>
-                      </div>
-                    )}
-                      {selectedPaper.citation_count && (
-                      <div className="metric-item">
-                          <span className="metric-label">Citations</span>
-                        <span className="metric-value">
-                            {selectedPaper.citation_count}
-                        </span>
-                      </div>
-                    )}
-                      {selectedPaper.download_count && (
-                      <div className="metric-item">
-                          <span className="metric-label">Downloads</span>
-                        <span className="metric-value">
-                            {selectedPaper.download_count}
-                        </span>
-                      </div>
-                    )}
-                      {selectedPaper.view_count && (
-                      <div className="metric-item">
-                          <span className="metric-label">Views</span>
-                        <span className="metric-value">
-                            {selectedPaper.view_count}
-                        </span>
-                      </div>
+                  )}
+
+                  <div className="detail-section">
+                    <h3 className="detail-label">Subject Area</h3>
+                    <p className="detail-value">{selectedPaper.salevelone.name}</p>
+                  </div>
+
+                  <div className="detail-section">
+                    <h3 className="detail-label">Publisher</h3>
+                    <p className="detail-value">{selectedPaper.publishername}</p>
+                  </div>
+
+                  <div className="detail-section">
+                    <h3 className="detail-label">Service</h3>
+                    <p className="detail-value">
+                      {selectedPaper.servicetype.servicename}
+                    </p>
+                    {selectedPaper.servicetype.description && (
+                      <p className="detail-value detail-value--secondary">
+                        {selectedPaper.servicetype.description}
+                      </p>
                     )}
                   </div>
-                </div>
-                )}
 
-                <div className="detail-section">
-                  <h3 className="detail-label">Subject Area</h3>
-                  <p className="detail-value">{selectedPaper.salevelone.name}</p>
-                </div>
-
-                <div className="detail-section">
-                  <h3 className="detail-label">Publisher</h3>
-                  <p className="detail-value">{selectedPaper.publishername}</p>
-                </div>
-
-                <div className="detail-section">
-                      <h3 className="detail-label">Service</h3>
-                  <p className="detail-value">
-                    {selectedPaper.servicetype.servicename}
-                  </p>
-                      {selectedPaper.servicetype.description && (
-                    <p className="detail-value detail-value--secondary">
-                          {selectedPaper.servicetype.description}
+                  <div className="detail-section">
+                    <h3 className="detail-label">Published</h3>
+                    <p className="detail-value">
+                      {new Date(selectedPaper.published_at).toLocaleDateString()}
                     </p>
+                    <p className="detail-value detail-value--secondary">
+                      {new Date(selectedPaper.published_at).toLocaleDateString('en-US', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+
+                  {selectedPaper.doi && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">DOI</h3>
+                      <p className="detail-value detail-value--link">
+                        {selectedPaper.doi}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedPaper.abstract && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Abstract</h3>
+                      <p className="detail-value">
+                        {selectedPaper.abstract}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedPaper.keywords && selectedPaper.keywords.length > 0 && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Keywords</h3>
+                      <p className="detail-value">
+                        {selectedPaper.keywords.join(', ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedPaper.volume && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Volume & Issue</h3>
+                      <p className="detail-value">
+                        Volume {selectedPaper.volume}
+                        {selectedPaper.issue && `, Issue ${selectedPaper.issue}`}
+                        {selectedPaper.pages && `, Pages ${selectedPaper.pages}`}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedPaper.language && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Language</h3>
+                      <p className="detail-value">{selectedPaper.language}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.research_type && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Research Type</h3>
+                      <p className="detail-value">{selectedPaper.research_type}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.study_design && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Study Design</h3>
+                      <p className="detail-value">{selectedPaper.study_design}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.sample_size && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Sample Size</h3>
+                      <p className="detail-value">{selectedPaper.sample_size.toLocaleString()} participants</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.data_collection_period && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Data Collection Period</h3>
+                      <p className="detail-value">{selectedPaper.data_collection_period}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.methodology && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Methodology</h3>
+                      <p className="detail-value">{selectedPaper.methodology}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.results && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Results</h3>
+                      <p className="detail-value">{selectedPaper.results}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.conclusions && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Conclusions</h3>
+                      <p className="detail-value">{selectedPaper.conclusions}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.limitations && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Limitations</h3>
+                      <p className="detail-value">{selectedPaper.limitations}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.future_work && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Future Work</h3>
+                      <p className="detail-value">{selectedPaper.future_work}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.funding && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Funding</h3>
+                      <p className="detail-value">{selectedPaper.funding}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.funding_sources && selectedPaper.funding_sources.length > 0 && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Funding Sources</h3>
+                      {selectedPaper.funding_sources.map((source, index) => (
+                        <p key={index} className="detail-value detail-value--secondary">
+                          <strong>{source.name}</strong>
+                          {source.grant_number && ` (Grant: ${source.grant_number})`}
+                          {source.amount && ` - ${source.currency} ${source.amount.toLocaleString()}`}
+                          {source.duration && ` (${source.duration})`}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedPaper.acknowledgments && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Acknowledgments</h3>
+                      <p className="detail-value">{selectedPaper.acknowledgments}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.author_contributions && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Author Contributions</h3>
+                      <p className="detail-value">{selectedPaper.author_contributions}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.conflicts_of_interest && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Conflicts of Interest</h3>
+                      <p className="detail-value">{selectedPaper.conflicts_of_interest}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.ethical_approval && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Ethical Approval</h3>
+                      <p className="detail-value">{selectedPaper.ethical_approval}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.data_availability && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Data Availability</h3>
+                      <p className="detail-value">{selectedPaper.data_availability}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.supplementary_materials && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Supplementary Materials</h3>
+                      <p className="detail-value">{selectedPaper.supplementary_materials}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.license && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">License</h3>
+                      <p className="detail-value">{selectedPaper.license}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.open_access !== undefined && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Open Access</h3>
+                      <p className="detail-value">{selectedPaper.open_access ? 'Yes' : 'No'}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.peer_reviewed !== undefined && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Peer Reviewed</h3>
+                      <p className="detail-value">{selectedPaper.peer_reviewed ? 'Yes' : 'No'}</p>
+                    </div>
+                  )}
+
+                  {selectedPaper.tags && selectedPaper.tags.length > 0 && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Tags</h3>
+                      <p className="detail-value">
+                        {selectedPaper.tags.map((tag, index) => (
+                          <span key={index} className="tag">
+                            {tag}
+                            {index < (selectedPaper.tags?.length || 0) - 1 && ', '}
+                          </span>
+                        ))}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedPaper.categories && selectedPaper.categories.length > 0 && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Categories</h3>
+                      <p className="detail-value">
+                        {selectedPaper.categories.join(', ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {selectedPaper.related_papers && selectedPaper.related_papers.length > 0 && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Related Papers</h3>
+                      {selectedPaper.related_papers.map((paper, index) => (
+                        <p key={index} className="detail-value detail-value--secondary">
+                          {paper}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+
+                  {selectedPaper.references && selectedPaper.references.length > 0 && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">References</h3>
+                      <div className="references-list">
+                        {selectedPaper.references.slice(0, 10).map((ref, index) => (
+                          <p key={index} className="detail-value detail-value--secondary reference-item">
+                            {index + 1}. {ref}
+                          </p>
+                        ))}
+                        {selectedPaper.references.length > 10 && (
+                          <p className="detail-value detail-value--secondary">
+                            ... and {selectedPaper.references.length - 10} more references
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedPaper.articlelink && (
+                    <div className="detail-section">
+                      <h3 className="detail-label">Link</h3>
+                      <a
+                        href={selectedPaper.articlelink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="detail-value detail-value--link"
+                      >
+                        View Article
+                      </a>
+                    </div>
                   )}
                 </div>
 
-                  <div className="detail-section">
-                      <h3 className="detail-label">Published</h3>
-                      <p className="detail-value">
-                        {new Date(selectedPaper.published_at).toLocaleDateString()}
-                      </p>
-                        <p className="detail-value detail-value--secondary">
-                        {new Date(selectedPaper.published_at).toLocaleDateString('en-US', { 
-                          weekday: 'long', 
-                          year: 'numeric', 
-                          month: 'long', 
-                          day: 'numeric' 
-                        })}
-                      </p>
-                    </div>
-
-                    {selectedPaper.doi && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">DOI</h3>
-                        <p className="detail-value detail-value--link">
-                          {selectedPaper.doi}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedPaper.abstract && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Abstract</h3>
-                        <p className="detail-value">
-                          {selectedPaper.abstract}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedPaper.keywords && selectedPaper.keywords.length > 0 && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Keywords</h3>
-                        <p className="detail-value">
-                          {selectedPaper.keywords.join(', ')}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedPaper.volume && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Volume & Issue</h3>
-                        <p className="detail-value">
-                          Volume {selectedPaper.volume}
-                          {selectedPaper.issue && `, Issue ${selectedPaper.issue}`}
-                          {selectedPaper.pages && `, Pages ${selectedPaper.pages}`}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedPaper.language && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Language</h3>
-                        <p className="detail-value">{selectedPaper.language}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.research_type && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Research Type</h3>
-                        <p className="detail-value">{selectedPaper.research_type}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.study_design && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Study Design</h3>
-                        <p className="detail-value">{selectedPaper.study_design}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.sample_size && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Sample Size</h3>
-                        <p className="detail-value">{selectedPaper.sample_size.toLocaleString()} participants</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.data_collection_period && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Data Collection Period</h3>
-                        <p className="detail-value">{selectedPaper.data_collection_period}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.methodology && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Methodology</h3>
-                        <p className="detail-value">{selectedPaper.methodology}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.results && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Results</h3>
-                        <p className="detail-value">{selectedPaper.results}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.conclusions && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Conclusions</h3>
-                        <p className="detail-value">{selectedPaper.conclusions}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.limitations && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Limitations</h3>
-                        <p className="detail-value">{selectedPaper.limitations}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.future_work && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Future Work</h3>
-                        <p className="detail-value">{selectedPaper.future_work}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.funding && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Funding</h3>
-                        <p className="detail-value">{selectedPaper.funding}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.funding_sources && selectedPaper.funding_sources.length > 0 && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Funding Sources</h3>
-                        {selectedPaper.funding_sources.map((source, index) => (
-                          <p key={index} className="detail-value detail-value--secondary">
-                            <strong>{source.name}</strong>
-                            {source.grant_number && ` (Grant: ${source.grant_number})`}
-                            {source.amount && ` - ${source.currency} ${source.amount.toLocaleString()}`}
-                            {source.duration && ` (${source.duration})`}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    {selectedPaper.acknowledgments && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Acknowledgments</h3>
-                        <p className="detail-value">{selectedPaper.acknowledgments}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.author_contributions && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Author Contributions</h3>
-                        <p className="detail-value">{selectedPaper.author_contributions}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.conflicts_of_interest && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Conflicts of Interest</h3>
-                        <p className="detail-value">{selectedPaper.conflicts_of_interest}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.ethical_approval && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Ethical Approval</h3>
-                        <p className="detail-value">{selectedPaper.ethical_approval}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.data_availability && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Data Availability</h3>
-                        <p className="detail-value">{selectedPaper.data_availability}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.supplementary_materials && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Supplementary Materials</h3>
-                        <p className="detail-value">{selectedPaper.supplementary_materials}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.license && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">License</h3>
-                        <p className="detail-value">{selectedPaper.license}</p>
-                      </div>
-                    )}
-
-                    {selectedPaper.open_access !== undefined && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Open Access</h3>
-                        <p className="detail-value">{selectedPaper.open_access ? 'Yes' : 'No'}</p>
-                    </div>
-                    )}
-
-                    {selectedPaper.peer_reviewed !== undefined && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Peer Reviewed</h3>
-                        <p className="detail-value">{selectedPaper.peer_reviewed ? 'Yes' : 'No'}</p>
-                  </div>
-                )}
-
-                    {selectedPaper.tags && selectedPaper.tags.length > 0 && (
-                  <div className="detail-section">
-                        <h3 className="detail-label">Tags</h3>
-                    <p className="detail-value">
-                          {selectedPaper.tags.map((tag, index) => (
-                            <span key={index} className="tag">
-                              {tag}
-                              {index < (selectedPaper.tags?.length || 0) - 1 && ', '}
-                            </span>
-                          ))}
-                    </p>
-                  </div>
-                )}
-
-                    {selectedPaper.categories && selectedPaper.categories.length > 0 && (
-                <div className="detail-section">
-                        <h3 className="detail-label">Categories</h3>
-                    <p className="detail-value">
-                          {selectedPaper.categories.join(', ')}
-                        </p>
-                      </div>
-                    )}
-
-                    {selectedPaper.related_papers && selectedPaper.related_papers.length > 0 && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">Related Papers</h3>
-                        {selectedPaper.related_papers.map((paper, index) => (
-                          <p key={index} className="detail-value detail-value--secondary">
-                            {paper}
-                          </p>
-                        ))}
-                      </div>
-                    )}
-
-                    {selectedPaper.references && selectedPaper.references.length > 0 && (
-                      <div className="detail-section">
-                        <h3 className="detail-label">References</h3>
-                        <div className="references-list">
-                          {selectedPaper.references.slice(0, 10).map((ref, index) => (
-                            <p key={index} className="detail-value detail-value--secondary reference-item">
-                              {index + 1}. {ref}
-                            </p>
-                          ))}
-                          {selectedPaper.references.length > 10 && (
-                    <p className="detail-value detail-value--secondary">
-                              ... and {selectedPaper.references.length - 10} more references
-                            </p>
-                          )}
-                  </div>
-                </div>
-                    )}
-
-                {selectedPaper.articlelink && (
-                  <div className="detail-section">
-                    <h3 className="detail-label">Link</h3>
-                    <a
-                      href={selectedPaper.articlelink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="detail-value detail-value--link"
-                    >
-                      View Article
-                    </a>
-                  </div>
-                )}
-                </div>
-                
                 <div className="paper-image">
                   <div className="image-container">
-                    <Image 
-                      src={getPopupImageUrl(selectedPaper)} 
+                    <Image
+                      src={buildPopupImageUrl(selectedPaper)}
                       alt={selectedPaper.salevelone?.icon?.alternativeText || 'Paper Image'}
                       className="paper-image-display"
                       width={400}
@@ -802,4 +801,4 @@ const DataDisplay: React.FC = () => {
   );
 };
 
-export default DataDisplay;
+export default PapersBrowser;

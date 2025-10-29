@@ -1,4 +1,4 @@
-import DataDisplay from '../components/features/DataDisplay';
+import PapersBrowser from '../components/features/DataDisplay';
 import ErrorBoundary from '../components/ui/ErrorBoundary';
 
 export default function Home() {
@@ -6,7 +6,7 @@ export default function Home() {
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
         <main>
-          <DataDisplay />
+          <PapersBrowser />
         </main>
       </div>
     </ErrorBoundary>

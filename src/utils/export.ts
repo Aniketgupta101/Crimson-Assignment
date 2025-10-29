@@ -1,5 +1,5 @@
 
-export const exportToCSV = (papers: any[], filename: string = 'research_papers.csv') => {
+export const downloadPapersAsCSV = (papers: any[], filename: string = 'research_papers.csv') => {
   const headers = [
     'Title',
     'Authors', 
@@ -36,7 +36,7 @@ export const exportToCSV = (papers: any[], filename: string = 'research_papers.c
   document.body.removeChild(link);
 };
 
-export const exportToPDF = (papers: any[], filename: string = 'research_papers.pdf') => {
+export const openPrintPreviewForPapers = (papers: any[], filename: string = 'research_papers.pdf') => {
   // Render into a hidden iframe and trigger print dialog to avoid opening a new tab/window
   const iframe = document.createElement('iframe');
   iframe.style.position = 'fixed';
